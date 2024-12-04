@@ -7,14 +7,14 @@
 // ライブラリをモジュールとして読み込む
 import * as THREE from "three";
 import { GUI } from "ili-gui";
-
+//------------------Base Block
 // ３Ｄページ作成関数の定義
 function init() {
   // 制御変数の定義
   const param = {
     axes: true, // 座標軸
     follow: true, //camera follow
-    score: 0, // points
+    score: 0, // points error need fix
     hp: 100,
     mp: 100,
     exp: 0,
@@ -24,13 +24,12 @@ function init() {
   // GUIコントローラの設定
   const gui = new GUI();
   gui.add(param, "axes").name("座標軸");
-  gui.add(param, "follow").name("follow");
-  gui.add(param, "score").name("points").listen();
+  gui.add(param, "score").name("score").listen();
   gui.add(param, "hp").name("HP").listen();
   gui.add(param, "mp").name("MP").listen();
   gui.add(param, "exp").name("EXP").listen();
   gui.add(param, "level").name("Level").listen();
-  gui.add({ reset: restGame }, "reset").name("game reset"); 
+  gui.add({ reset: resetGame }, "reset").name("game reset"); 
   
 
   // シーン作成
@@ -45,6 +44,7 @@ function init() {
     50, window.innerWidth/window.innerHeight, 0.1, 1000);
   camera.position.set(1,50,15);
   camera.lookAt(0,0,0);
+  const cameraOffset = new THREE.Vector3(0, 25, 30);
 
 
   // 光源の設定
@@ -62,7 +62,7 @@ function init() {
 
   // レンダラの設定
   const renderer = new THREE.WebGLRenderer();
-  renderer.setSize(window.innerWidth, innerHeight);
+  renderer.setSize(window.innerWidth, window.innerHeight);
   document.getElementById("output").appendChild(renderer.domElement);
 
 
@@ -79,14 +79,14 @@ function init() {
   scene.add(plane);
 
 
-  // -----------------------------------------------------charactor
+  // -----------------------------------------------------charactor Block
 
 
 
   // charactor create
-  const getmetry = new THREE.BoxGeometry(1,1,1);
+  const Bgeometry = new THREE.BoxGeometry(1,1,1);
   const material = new THREE.MeshPhongMaterial({color: 0xff0000});
-  const charactor = new THREE.Mesh(getmetry, material);
+  const charactor = new THREE.Mesh(Bgeometry, material);
   scene.add(charactor);
 
   // bullets
@@ -108,22 +108,34 @@ function init() {
   
   function movement() {
     const speed = 0.1;
-    if (keys['ArrowUp']) {charactor.position.z -= speed; lastDirection.set(0,0,-1);}
-    if (keys['ArrowDown']) {charactor.position.z += speed; lastDirection.set(0,0,1);}
-    if (keys['ArrowLeft']) {charactor.position.x -= speed; lastDirection.set(-1,0,0);}
-    if (keys['ArrowRight']) {charactor.position.x += speed; lastDirection.set(1,0,0);}
+    if (keys['ArrowUp']) {
+      charactor.position.z -= speed; 
+      lastDirection.set(0,0,-1);
+    }
+    if (keys['ArrowDown']) {
+      charactor.position.z += speed; 
+      lastDirection.set(0,0,1);
+    }
+    if (keys['ArrowLeft']) {
+      charactor.position.x -= speed; 
+      lastDirection.set(-1,0,0);
+    }
+    if (keys['ArrowRight']) {
+      charactor.position.x += speed; 
+      lastDirection.set(1,0,0);
+    }
 
     // board check
-    if (charactor.position.x>50) charactor.position.x =50;
-    if (charactor.position.x<-50) charactor.position.x =-50;
-    if (charactor.position.z>50) charactor.position.z =50;
-    if (charactor.position.z<-50) charactor.position.z =-50;
+    if (charactor.position.x>100) charactor.position.x =100;
+    if (charactor.position.x<-100) charactor.position.x =-100;
+    if (charactor.position.z>100) charactor.position.z =100;
+    if (charactor.position.z<-100) charactor.position.z =-100;
     
 
   }
 
 
-  // skills create
+  // -----------------------------skills&items Block
 
   // bullet attack
   function Shoot(){
@@ -142,14 +154,14 @@ function init() {
     if(param.mp>=5) {
       param.mp -= 5;
       const beam = new THREE.Mesh(
-        new THREE.BoxGeometry(0.2,0.2,10),
+        new THREE.BoxGeometry(10,10,10),
         new THREE.MeshBasicMaterial({color:0xffffff})
       );
       beam.position.copy(charactor.position);
-      beam.position.z +=5;
-      beam.velocity = lastDirection.clone().multiplyScalar(1);
+      beam.quaternion.copy(charactor.quaternion);
+      beam.velocity = lastDirection.clone().multiplyScalar(10);
       beam.lifetime = 3;
-      beam.elpsedTime = 0;
+      beam.elapsedTime = 0;
       beams.push(beam);
       scene.add(beam);
     }
@@ -178,9 +190,9 @@ function init() {
     for (const item of items) {
       if (charactor.position.distanceTo(item.position)<1){
         if(item.type === "hp"){
-          param.hp +=1;
+          param.hp +=10;
         } else if (item.type === "mp"){
-          param.mp +=1;
+          param.mp +=10;
         }
         scene.remove(item);
       }
@@ -214,7 +226,7 @@ function init() {
 
 
 
-  // -----------------------------------------------------enemy
+  // -----------------------------------------------------enemy Block
 
 
   // targets create
@@ -251,6 +263,32 @@ function init() {
     enemies.push(enemy);
   }
 
+  // spawn enemy
+  function spawnEnemies() {
+    if (param.score >= 100) {
+      clearInterval(enemySpawnInterval);  // score=100 stop creating
+      alert("Victory! You have reached 100 points!");
+      return;
+    }
+
+    const numEnemies = Math.floor(Math.random() * 10) + 1;  
+    for (let i = 0; i < numEnemies; i++) {
+      const randomTargetIndex = Math.floor(Math.random() * targetPositions.length);
+      const pos = targetPositions[randomTargetIndex];
+
+      const enemy = new THREE.Mesh(
+        new THREE.SphereGeometry(0.5, 32, 32),
+        new THREE.MeshLambertMaterial({ color: Math.random() > 0.5 ? 0x0000ff : 0xffff00 })
+      );
+      enemy.position.set(pos.x, pos.y, pos.z);
+      enemy.speed = 0.05;
+      scene.add(enemy);
+      enemies.push(enemy);
+    }
+  }
+
+  const enemySpawnInterval = setInterval(spawnEnemies, 10000);
+
   // enemy movement
   function moveEnemies() {
     for(const enemy of enemies){
@@ -261,31 +299,44 @@ function init() {
   }
 
 
-  // -----------------------------------------------------action
+  // -----------------------------------------------------action Block
 
   // hit detection
-  function checkhit(){
-    // enemy 
+  function checkHit(){
+    // enemy hited
     for(const enemy of enemies){
       if (charactor.position.distanceTo(enemy.position)<1){
         param.hp -=1;
         if (param.hp<=0){
           alert("game over!");
-          restGame();
+          resetGame();
         }
       }
     }
 
-    // bullet
+    // bullet hit
     for (const bullet of bullets) {
+
+      // target hits
+      for (let i = targets.length - 1; i >= 0; i--) {
+        const target = targets[i];
+        if (bullet.position.distanceTo(target.position) < 1) {
+          param.score += 1;
+          param.scene += 1;
+
+          scene.remove(bullet);
+          bullets.splice(bullets.indexOf(bullet),1);
+        }
+      }
+      // enemy hits
       for (const enemy of enemies){
         if (bullet.position.distanceTo(enemy.position)<1){
           scene.remove(enemy);
-
           enemies.splice(enemies.indexOf(enemy),1);
 
           param.exp +=1;
-          if(Math.random<0.5){
+          param.score +=1;
+          if(Math.random()<0.5){
             dropItem(enemy.position);
           }
           scene.remove(bullet);
@@ -293,43 +344,37 @@ function init() {
           break;
         }
       }
+
     }
 
-    // beam
-    for (const beam of beams){
-      for (const enemy of enemies){
-        if(beam.position.distanceTo(enemy.position)<1){
+    // beam hit
+    for (const beam of beams) {
+      const beamBox = new THREE.Box3().setFromObject(beam);
+
+      for (let j = enemies.length - 1; j >= 0; j--) {
+        const enemy = enemies[j];
+        if (beamBox.containsPoint(enemy.position)) {
           scene.remove(enemy);
-          enemies.splice(enemies.indexOf(enemy),1);
-          param.exp +=1;
-          if(Math.random<0.5){
+          enemies.splice(j, 1);
+
+          param.exp += 1;
+          param.score +=1;
+          if (Math.random() < 0.5) {
             dropItem(enemy.position);
           }
-          scene.remove(beam);
-          beams.splice(bullets.indexOf(beam),1);
-          break;
         }
       }
     }
 
-  }
+    
 
-
-
-  // points check
-  for (let i = 0; i<targets.length; i++){
-    if(charactor.position.distanceTo(targets[i].position)<1){
-      scene.remove(targets[i]);
-      targets.splice(i,1);
-      param.scene++;
-    }
   }
 
 
 
 
 
-
+  // ----------------Block movement
 
   // 描画処理
   const charactorPosition = new THREE.Vector3();
@@ -345,7 +390,7 @@ function init() {
     // move
     movement();
     // enemy move
-    moveEnemies();  // check point
+    moveEnemies();  
 
 
     // pick items
@@ -360,17 +405,29 @@ function init() {
     }
 
     // beam move
-    for(const beam of beams) {
-      beam.position.add(beam.velocity);
+    for (let i = beams.length - 1; i >= 0; i--) {
+      const beam = beams[i];
+      beam.position.add(beam.velocity.clone().multiplyScalar(delta));
+
       beam.elapsedTime += delta;
-      if(beam.elapsedTime >= beam.lifetime) {
+
+      if (beam.elapsedTime >= beam.lifetime * 0.8) {
+        const opacity = 1 - (beam.elapsedTime - beam.lifetime * 0.8) / (beam.lifetime * 0.2);
+        beam.material.opacity = Math.max(0, opacity);
+        beam.material.transparent = true;
+      }
+
+      if (beam.elapsedTime >= beam.lifetime) {
         scene.remove(beam);
-        beams.splice(beams.indexOf(beam),1);
+        beams.splice(i, 1);
       }
     }
 
+
+
+
     // hit detect
-    checkhit();
+    checkHit();
 
     // level check
     checkLevelUp();
@@ -381,6 +438,7 @@ function init() {
 
     // camera follow
     if (param.follow) {
+      camera.position.copy(charactor.position).add(cameraOffset);
       camera.lookAt(charactor.position);
       camera.up.set(0,1,0);
     } 
@@ -393,16 +451,16 @@ function init() {
   // start auto recover
   autoHeal();
 
-
+  // ---------------------Block Anime
   // 描画開始
   render();
 
   // reset
-  function restGame() {
+  function resetGame() {
     charactor.position.set(0,0,0);
     param.score = 0;
-    param.hp = 10;
-    param.mp = 10;
+    param.hp = 100;
+    param.mp = 100;
     param.exp = 0;
     param.level = 1;
 
