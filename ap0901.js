@@ -69,15 +69,20 @@ function init() {
   // game clock created
   const clock = new THREE.Clock();
 
+  // -----------------------------------------------------enviroment block
+  const floorGeometry = new THREE.PlaneGeometry(100, 100);
 
-  // plane create
-  const plane = new THREE.Mesh(
-    new THREE.PlaneGeometry(1000, 1000),
-    new THREE.MeshLambertMaterial({ color: 0x404040 }));
-  plane.rotation.x = -Math.PI / 2;
-  plane.position.y = -5;
-  scene.add(plane);
+  const floorMaterial = new THREE.MeshStandardMaterial({
+    map: new THREE.TextureLoader().load('chess.webp'),
+    side: THREE.DoubleSide 
+  });
 
+  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+  floor.rotation.x = -Math.PI / 2; 
+  floor.position.y = -5;
+  floor.receiveShadow = true; 
+
+  scene.add(floor);
 
   // -----------------------------------------------------charactor Block
 
@@ -107,7 +112,7 @@ function init() {
   let lastDirection = new THREE.Vector3(0,0,0);
   
   function movement() {
-    const speed = 0.1;
+    const speed = 0.25;
     if (keys['ArrowUp']) {
       charactor.position.z -= speed; 
       lastDirection.set(0,0,-1);
@@ -144,7 +149,7 @@ function init() {
       new THREE.MeshBasicMaterial({color : 0xffffff})
     );
     bullet.position.copy(charactor.position);
-    bullet.velocity = lastDirection.clone().multiplyScalar(0.1);
+    bullet.velocity = lastDirection.clone().multiplyScalar(0.35);
     bullets.push(bullet);
     scene.add(bullet);
   }
@@ -165,6 +170,11 @@ function init() {
       beams.push(beam);
       scene.add(beam);
     }
+  }
+
+  // Dash
+  function Dash() {
+
   }
 
 
@@ -492,11 +502,14 @@ function init() {
 
   // key event
   window.addEventListener('keydown',(event)=>{
-    if(event.key === 'a' || event.key ==='A'){
+    if(event.key === 'a' || event.key === 'A'){
       Shoot();
     }
     if(event.key === 's' || event.key === 'S'){
       Beam();
+    }
+    if(event.key === 'q' || event.key === 'Q'){
+      Dash();
     }
   });
 
