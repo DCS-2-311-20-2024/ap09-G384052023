@@ -12,13 +12,14 @@ import { GUI } from "ili-gui";
 function init() {
   // 制御変数の定義
   const param = {
-    axes: true, // 座標軸
+    axes: false, // 座標軸
     follow: true, //camera follow
     score: 0, // points error need fix
     hp: 100,
     mp: 100,
     exp: 0,
     level: 1,
+    dashCooldown: 0,
   };
 
   // GUIコントローラの設定
@@ -47,7 +48,7 @@ function init() {
   const cameraOffset = new THREE.Vector3(0, 25, 30);
 
 
-  // 光源の設定
+  // 光源の設定---------- light block
   { // 環境ライト
     const light = new THREE.AmbientLight();
     light.intensity=0.9;
@@ -57,6 +58,26 @@ function init() {
     const light = new THREE.PointLight(0xffffff, 500);
     light.position.set(0, 20, 0);
     scene.add(light);
+  }
+  { // ポイントライト2
+    const light2 = new THREE.PointLight(0xffffff, 500);
+    light2.position.set(-25, 20, );
+    scene.add(light2);
+  }
+  { // ポイントライト3
+    const light3 = new THREE.PointLight(0xffffff, 500);
+    light3.position.set(25, 20, 0);
+    scene.add(light3);
+  }
+  { // ポイントライト
+    const light4 = new THREE.PointLight(0xffffff, 500);
+    light4.position.set(0, 20, 25);
+    scene.add(light4);
+  }
+  { // ポイントライト
+    const light5 = new THREE.PointLight(0xffffff, 500);
+    light5.position.set(0, 20, -25);
+    scene.add(light5);
   }
 
 
@@ -73,13 +94,13 @@ function init() {
   const floorGeometry = new THREE.PlaneGeometry(100, 100);
 
   const floorMaterial = new THREE.MeshStandardMaterial({
-    map: new THREE.TextureLoader().load('chess.webp'),
+    map: new THREE.TextureLoader().load('5f80c35034bd1fdd3a6990995917d2ebのコピー.jpeg'),
     side: THREE.DoubleSide 
   });
 
   const floor = new THREE.Mesh(floorGeometry, floorMaterial);
   floor.rotation.x = -Math.PI / 2; 
-  floor.position.y = -5;
+  floor.position.y = -0.5;  
   floor.receiveShadow = true; 
 
   scene.add(floor);
@@ -92,6 +113,7 @@ function init() {
   const Bgeometry = new THREE.BoxGeometry(1,1,1);
   const material = new THREE.MeshPhongMaterial({color: 0xff0000});
   const charactor = new THREE.Mesh(Bgeometry, material);
+  charactor.castShadow = true;
   scene.add(charactor);
 
   // bullets
@@ -110,9 +132,13 @@ function init() {
 
   //movement
   let lastDirection = new THREE.Vector3(0,0,0);
-  
+  let DashDirection = new THREE.Vector3(0,0,0);
+  let isDashing = false; 
+  const normalSpeed = 0.3;
+  const dashSpeedMultiplier = 5;
+
   function movement() {
-    const speed = 0.25;
+    const speed = isDashing ? normalSpeed * dashSpeedMultiplier : normalSpeed;
     if (keys['ArrowUp']) {
       charactor.position.z -= speed; 
       lastDirection.set(0,0,-1);
@@ -131,11 +157,15 @@ function init() {
     }
 
     // board check
-    if (charactor.position.x>100) charactor.position.x =100;
-    if (charactor.position.x<-100) charactor.position.x =-100;
-    if (charactor.position.z>100) charactor.position.z =100;
-    if (charactor.position.z<-100) charactor.position.z =-100;
-    
+    if (charactor.position.x>50) charactor.position.x =50;
+    if (charactor.position.x<-50) charactor.position.x =-50;
+    if (charactor.position.z>50) charactor.position.z =50;
+    if (charactor.position.z<-50) charactor.position.z =-50;
+    // Dash detection
+    if (isDashing) {
+      DashDirection = lastDirection;
+      charactor.position.add(DashDirection.clone().multiplyScalar(speed));
+    }
 
   }
 
@@ -149,7 +179,7 @@ function init() {
       new THREE.MeshBasicMaterial({color : 0xffffff})
     );
     bullet.position.copy(charactor.position);
-    bullet.velocity = lastDirection.clone().multiplyScalar(0.35);
+    bullet.velocity = lastDirection.clone().multiplyScalar(0.5);
     bullets.push(bullet);
     scene.add(bullet);
   }
@@ -174,7 +204,22 @@ function init() {
 
   // Dash
   function Dash() {
-
+    if (param.dashCooldown > 0) return; 
+  
+    isDashing = true;
+   
+    DashDirection = new THREE.Vector3(0, 0, -1);
+    DashDirection.applyQuaternion(charactor.quaternion); 
+  
+    DashDirection.y = 0;
+    DashDirection.normalize();
+  
+    param.dashCooldown = 3; 
+  
+    setTimeout(() => {
+      isDashing = false;
+    }, 500); 
+  
   }
 
 
@@ -183,11 +228,15 @@ function init() {
 
   // Item drop
   function dropItem(position){
+    const itemRadius = 0.5;
     const item = new THREE.Mesh(
       new THREE.SphereGeometry(0.5,32,32),
       new THREE.MeshBasicMaterial({color: Math.random()>0.5 ? 0xff0000:0x0000ff})
     );
-    item.position.copy(position);
+
+
+    item.position.set(position.x, -0.5 + itemRadius, position.z);
+    
     item.type = Math.random()>0.5 ? "hp" : "mp" ;
     scene.add(item);
     setTimeout(() => {scene.remove(item);
@@ -212,8 +261,8 @@ function init() {
 
   // solo level up
   function checkLevelUp() {
-    while (param.exp >= param.level * 10) {
-      param.exp -= param.level * 10;
+    while (param.exp >= param.level * 5) {
+      param.exp -= param.level * 5;
       param.level += 1;
       param.hp += 5; 
       param.mp += 5; 
@@ -241,6 +290,10 @@ function init() {
 
   // targets create
   const targetPositions = [
+    {x:50,y:0,z:50},
+    {x:50,y:0,z:-50},
+    {x:-50,y:0,z:50},
+    {x:-50,y:0,z:-50},
     {x:50,y:0,z:0},
     {x:-50,y:0,z:0},
     {x:0,y:0,z:50},
@@ -250,6 +303,7 @@ function init() {
   for(const pos of targetPositions){
     const target = new THREE.Mesh(new THREE.SphereGeometry(0.5,32,32), new THREE.MeshLambertMaterial({color: 0x00ff00}));
     target.position.set(pos.x,pos.y,pos.z);
+    target.castShadow = true;
     scene.add(target);
     targets.push(target);
   }
@@ -269,29 +323,35 @@ function init() {
     );
     enemy.position.set(pos.x,pos.y,pos.z);
     enemy.speed = 0.05;
+    enemy.castShadow = true;
     scene.add(enemy);
     enemies.push(enemy);
   }
 
   // spawn enemy
   function spawnEnemies() {
-    if (param.score >= 100) {
-      clearInterval(enemySpawnInterval);  // score=100 stop creating
-      alert("Victory! You have reached 100 points!");
+    if (param.score >= 300) {
+      clearInterval(enemySpawnInterval);  // score=300 stop creating
+      alert("Victory! You have reached 300 points!");
       return;
     }
 
-    const numEnemies = Math.floor(Math.random() * 10) + 1;  
+    const numEnemies = Math.floor(Math.random() * 100) + 1;  
     for (let i = 0; i < numEnemies; i++) {
-      const randomTargetIndex = Math.floor(Math.random() * targetPositions.length);
+      const randomTargetIndex = Math.floor(Math.random() * targetPositions.length); 
       const pos = targetPositions[randomTargetIndex];
 
+      const randomRadius = Math.random() * (3 - 0.5) + 0.5;  
+
+      const enemyYPosition = -0.5 + randomRadius;
+
       const enemy = new THREE.Mesh(
-        new THREE.SphereGeometry(0.5, 32, 32),
+        new THREE.SphereGeometry(randomRadius, 32, 32),
         new THREE.MeshLambertMaterial({ color: Math.random() > 0.5 ? 0x0000ff : 0xffff00 })
       );
-      enemy.position.set(pos.x, pos.y, pos.z);
-      enemy.speed = 0.05;
+      enemy.position.set(pos.x, enemyYPosition, pos.z);
+      enemy.speed = 0.05/randomRadius;  
+      enemy.castShadow = true;
       scene.add(enemy);
       enemies.push(enemy);
     }
@@ -315,7 +375,7 @@ function init() {
   function checkHit(){
     // enemy hited
     for(const enemy of enemies){
-      if (charactor.position.distanceTo(enemy.position)<1){
+      if (charactor.position.distanceTo(enemy.position)<enemy.geometry.parameters.radius){
         param.hp -=1;
         if (param.hp<=0){
           alert("game over!");
@@ -340,7 +400,7 @@ function init() {
       }
       // enemy hits
       for (const enemy of enemies){
-        if (bullet.position.distanceTo(enemy.position)<1){
+        if (bullet.position.distanceTo(enemy.position)<enemy.geometry.parameters.radius){
           scene.remove(enemy);
           enemies.splice(enemies.indexOf(enemy),1);
 
@@ -433,8 +493,17 @@ function init() {
       }
     }
 
+    // dash CD
+    if (param.dashCooldown > 0) {
+      param.dashCooldown -= delta;
+      if (param.dashCooldown < 0) {
+        param.dashCooldown = 0;
+      }
 
-
+      document.getElementById('dash-cooldown').textContent = `Dash Cooldown: ${Math.ceil(param.dashCooldown)}s`;
+    } else {
+      document.getElementById('dash-cooldown').textContent = 'Dash Ready!(press Q to use)';
+    }
 
     // hit detect
     checkHit();
