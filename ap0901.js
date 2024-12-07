@@ -94,7 +94,7 @@ function init() {
   const floorGeometry = new THREE.PlaneGeometry(100, 100);
 
   const floorMaterial = new THREE.MeshStandardMaterial({
-    map: new THREE.TextureLoader().load('5f80c35034bd1fdd3a6990995917d2ebのコピー.jpeg'),
+    map: new THREE.TextureLoader().load('material.png'),
     side: THREE.DoubleSide 
   });
 
@@ -111,7 +111,12 @@ function init() {
 
   // charactor create
   const Bgeometry = new THREE.BoxGeometry(1,1,1);
-  const material = new THREE.MeshPhongMaterial({color: 0xff0000});
+
+  const textureLoader = new THREE.TextureLoader();
+  const characterTexture = textureLoader.load('charactor.png');
+  const material = new THREE.MeshPhongMaterial({
+    map: characterTexture, 
+  });
   const charactor = new THREE.Mesh(Bgeometry, material);
   charactor.castShadow = true;
   scene.add(charactor);
@@ -188,11 +193,15 @@ function init() {
   function Beam() {
     if(param.mp>=5) {
       param.mp -= 5;
-      const beam = new THREE.Mesh(
-        new THREE.BoxGeometry(10,10,10),
-        new THREE.MeshBasicMaterial({color:0xffffff})
-      );
-      beam.position.copy(charactor.position);
+      const Bgeometry = new THREE.BoxGeometry(10,10,10);
+      const textureLoader = new THREE.TextureLoader();
+      const beamTexture = textureLoader.load('charactor.png');
+      const material = new THREE.MeshPhongMaterial({
+        map: beamTexture, 
+      });
+      const beam = new THREE.Mesh(Bgeometry, material);
+
+      beam.position.copy(charactor.position).add(new THREE.Vector3(0, 4.5, 0));
       beam.quaternion.copy(charactor.quaternion);
       beam.velocity = lastDirection.clone().multiplyScalar(10);
       beam.lifetime = 3;
@@ -236,7 +245,7 @@ function init() {
 
 
     item.position.set(position.x, -0.5 + itemRadius, position.z);
-    
+
     item.type = Math.random()>0.5 ? "hp" : "mp" ;
     scene.add(item);
     setTimeout(() => {scene.remove(item);
@@ -345,10 +354,17 @@ function init() {
 
       const enemyYPosition = -0.5 + randomRadius;
 
+      const color = new THREE.Color(
+        Math.random(), 
+        Math.random(), 
+        Math.random()  
+      );
+    
       const enemy = new THREE.Mesh(
         new THREE.SphereGeometry(randomRadius, 32, 32),
-        new THREE.MeshLambertMaterial({ color: Math.random() > 0.5 ? 0x0000ff : 0xffff00 })
+        new THREE.MeshPhongMaterial({ color: color })
       );
+
       enemy.position.set(pos.x, enemyYPosition, pos.z);
       enemy.speed = 0.05/randomRadius;  
       enemy.castShadow = true;
