@@ -91,19 +91,60 @@ function init() {
   const clock = new THREE.Clock();
 
   // -----------------------------------------------------enviroment block
-  const floorGeometry = new THREE.PlaneGeometry(100, 100);
+  const floorGeometryP1 = new THREE.PlaneGeometry(100, 100);
 
-  const floorMaterial = new THREE.MeshStandardMaterial({
-    map: new THREE.TextureLoader().load('material.png'),
-    side: THREE.DoubleSide 
+  const materialPathsP1 = [
+      'material.png',   
+      'material2.png'   
+  ];
+
+  const randomMaterialPath = materialPathsP1[Math.floor(Math.random() * materialPathsP1.length)];
+
+  const textureLoaderP1 = new THREE.TextureLoader();
+  const floorTextureP1 = textureLoaderP1.load(randomMaterialPath);
+
+  floorTextureP1.wrapS = floorTextureP1.wrapT = THREE.RepeatWrapping;
+  floorTextureP1.repeat.set(10, 10); 
+
+  const floorMaterialP1 = new THREE.MeshStandardMaterial({
+      map: floorTextureP1,
+      side: THREE.DoubleSide 
   });
 
-  const floor = new THREE.Mesh(floorGeometry, floorMaterial);
+  const floor = new THREE.Mesh(floorGeometryP1, floorMaterialP1);
   floor.rotation.x = -Math.PI / 2; 
   floor.position.y = -0.5;  
   floor.receiveShadow = true; 
 
   scene.add(floor);
+
+
+  const floorGeometryP2 = new THREE.PlaneGeometry(1000, 1000);
+  const materialPathsP2 = [
+    'background2.png'  
+  ];
+
+  const textureLoaderP2 = new THREE.TextureLoader();
+  const floorTextureP2 = textureLoaderP2.load(materialPathsP2);
+
+  floorTextureP2.wrapS = floorTextureP2.wrapT = THREE.RepeatWrapping;
+  floorTextureP2.repeat.set(10, 10); 
+
+  const floorMaterialP2 = new THREE.MeshStandardMaterial({
+      map: floorTextureP2,
+      side: THREE.DoubleSide 
+  });
+
+  const floor2 = new THREE.Mesh(floorGeometryP2, floorMaterialP2);
+  floor2.rotation.x = -Math.PI / 2; 
+  floor2.position.y = -1;  
+  floor2.receiveShadow = true; 
+
+  scene.add(floor2);
+
+
+
+
 
   // -----------------------------------------------------charactor Block
 
@@ -112,8 +153,8 @@ function init() {
   // charactor create
   const Bgeometry = new THREE.BoxGeometry(1,1,1);
 
-  const textureLoader = new THREE.TextureLoader();
-  const characterTexture = textureLoader.load('charactor.png');
+  const textureLoader2 = new THREE.TextureLoader();
+  const characterTexture = textureLoader2.load('charactor.png');
   const material = new THREE.MeshPhongMaterial({
     map: characterTexture, 
   });
@@ -171,7 +212,6 @@ function init() {
       DashDirection = lastDirection;
       charactor.position.add(DashDirection.clone().multiplyScalar(speed));
     }
-
   }
 
 
@@ -339,9 +379,9 @@ function init() {
 
   // spawn enemy
   function spawnEnemies() {
-    if (param.score >= 300) {
-      clearInterval(enemySpawnInterval);  // score=300 stop creating
-      alert("Victory! You have reached 300 points!");
+    if (param.score >= 10000) {
+      clearInterval(enemySpawnInterval);  // score=10000 stop creating
+      alert("Victory! You have reached 10000 points!");
       return;
     }
 
@@ -373,7 +413,7 @@ function init() {
     }
   }
 
-  const enemySpawnInterval = setInterval(spawnEnemies, 10000);
+  const enemySpawnInterval = setInterval(spawnEnemies, 1000);
 
   // enemy movement
   function moveEnemies() {
